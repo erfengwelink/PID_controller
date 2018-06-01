@@ -1,57 +1,57 @@
 
-/************************************************************************************
-*	The incomplete differential PID control algorithm
-*	不完全微分PID控制算法
+/*******************************************************************************************
+*	The Cascade PID control
+*	串级PID控制
 *
-*		在PID控制中，微分信号的引入可改善系统的动态性能，但也容易引进高频干扰，
-*	在误差扰动突变时尤其显出微分项的不足。若在控制算法中加入低通滤波器，则可使
-*	系统性能得到改善。
-*		克服上述缺点的方法之一是在PID算法中加入一个一阶惯性环节（低通滤波器）
-*	G_t(s)=1/(1+T_f_s)
-*		当M=1时，采用具有不完全微分PID方法；
-*		当M=2时，采用普通PID方法；
+*		主外副内，在一般的串级PID控制中，外环被称为主回路，内环被称为副回路。
+*		主调节器的输出控制量u1作为副回路的给定量R2(s)。
+*		串级控制系统的计算顺序是先主回路（PID1），后副回路（PID2）。控制方式有两种：一
+*	种是异步采样控制，即主回路的采样控制周期T1是副回路采样控制周期T2的整数倍。这是因为
+*	一般串级控制系统中主控对象的响应速度慢、副控对象的响应速度快的缘故。另一种是同步采
+*	样控制，即主、副回路的采样周期相同。这时，应根据副回路选择采样周期，因为副回路的受
+*	控对象的响应速度较快。
 *
-*		引入不完全微分，能有效的克服普通PID的不足。尽管不完全微分PID控制算法比普
-*	通PID控制算法要复杂些，但由于其良好的控制特性，近年来越来越得到广泛的应用。
-*	
-*	input:just for Step Signal
-*	目前只针对阶跃信号输入情况
-************************************************************************************/
+*	注：因算法本身的复杂度问题，该程序未整定完全，具体参数和计算方式请根据实际情况定义！
+*******************************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#define  ts 	20
-#define  Tf 	180
-#define  TD 	140
+#define	 Kp		1.20
+#define  Ki		0.02
+#define	 Kd		0.00
 
-#define	 Kc		0.035
-#define  Ki		0.265
-#define	 Kd		(float)(Kc*TD)/ts
-
-//basic data of pid control 
+//构造结构体
 struct pid_data
 {
-	float SetPoint;		//Desired Value
-	float FeedBack;		//feedback value
-	float err;			
-	float err_last;
-	float integral;
-	float u_k;
+	float rin;			//主回路输入
+	float yout1;		//主回路输出
+	float yout2;		//副回路输出
+	float err;			//主回路反馈误差
+	float err_last;		//上一次的主回路反馈误差
+	float integral;		//主回路反馈误差积分
+	float u1;			//主回路控制量
+	float u2;			//副回路控制量
+	float err2;			//副回路反馈误差
 };
 
+//定义结构体类型
 typedef struct pid_data		_pid_t;
 
-//pid struct data init
-struct pid_data* pid_init(float SetPoint, float FeedBack, float err, float err_last, float u_k)
+//机构体初始化
+struct pid_data* pid_init(float rin, float yout1,float yout2,
+float err, float err_last, float u1, float u2, float err2)
 {
 	struct pid_data* tset = malloc(sizeof(struct pid_data));
 
-	tset->SetPoint 	= SetPoint;
-	tset->FeedBack 	= FeedBack; 				
+	tset->rin 		= rin;
+	tset->yout1		= yout1;
+	tset->yout2 	= yout2; 				
 	tset->err 		= err;		
 	tset->err_last 	= err_last;
-	tset->u_k		= u_k;
+	tset->u1		= u1;
+	tset->u2		= u2;
+	tset->err2		= err2;
 
 	return tset;
 }
@@ -59,28 +59,26 @@ struct pid_data* pid_init(float SetPoint, float FeedBack, float err, float err_l
 //The Increment PID Control Algorithm
 float pid_calc(_pid_t* pid)
 {
-	float alfa,ud_k;
-	float ud_1=0;
-	int M = 1;
+	//副回路反馈误差权重
 	
-	pid->err = pid->SetPoint - pid->FeedBack;
+	float alpha  = 0.85,
+		  beta   = 0.15,
+		  mju	 = 0.66,
+		  nju	 = 0.88;
+	
+	pid->err 	   = pid->rin - pid->yout1;
 	pid->integral += pid->err;
-	if(M == 1)
-	{
-		alfa = Tf/(ts+Tf);
-		ud_k = Kd*(1 - alfa)*(pid->err - pid->err_last) + alfa*ud_1;
-		ud_1 = ud_k;
-		pid->u_k = Kc*pid->err + ud_k + Ki*pid->integral;
-	}
-	else if(M == 2)
-	{
-		pid->u_k = Kc*pid->err + Kd*(pid->err - pid->err_last) + Ki*pid->integral;
-	}
+	pid->u1 	   = Kp*pid->err + Ki*pid->integral;
 
-	pid->FeedBack = pid->u_k*1.0;
+	//具体计算方式根据实际情况而定,切勿生搬硬套！
+	pid->err2 = pid->u1 - pid->yout2;
+	pid->u2   = 0.05*pid->err2;
+	
+	pid->yout2 = mju*pid->yout2 + nju*pid->u2;
+	pid->yout1 = alpha*pid->yout1 + beta*pid->yout2;
 	pid->err_last = pid->err;
-
-	return pid->FeedBack;
+	
+	return pid->yout1;
 }
 
 int main()
@@ -91,12 +89,12 @@ int main()
 	int count = 0;
 	float real = 0;
 
-	tset = pid_init(35,0,0,0,0);
+	tset = pid_init(23,0,0,0,0,0,0,0);
 
 	while(count < 100)
 	{
 		real = pid_calc(tset);
-		printf("%d> %f\n", count, real);
+		printf("%f\n",real);
 		count++;
 	}
 
