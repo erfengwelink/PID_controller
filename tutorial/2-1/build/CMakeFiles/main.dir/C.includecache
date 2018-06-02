@@ -1,0 +1,14 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/13/main.c
+stdio.h
+-
+stdlib.h
+-
+

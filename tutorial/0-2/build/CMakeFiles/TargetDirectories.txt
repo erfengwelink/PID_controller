@@ -1,0 +1,3 @@
+/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/10/build/CMakeFiles/rebuild_cache.dir
+/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/10/build/CMakeFiles/edit_cache.dir
+/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/10/build/CMakeFiles/main.dir
