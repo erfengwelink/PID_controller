@@ -1,57 +1,49 @@
 
-/************************************************************************************
-*	The incomplete differential PID control algorithm
-*	不完全微分PID控制算法
-*
-*		在PID控制中，微分信号的引入可改善系统的动态性能，但也容易引进高频干扰，
-*	在误差扰动突变时尤其显出微分项的不足。若在控制算法中加入低通滤波器，则可使
-*	系统性能得到改善。
-*		克服上述缺点的方法之一是在PID算法中加入一个一阶惯性环节（低通滤波器）
-*	G_t(s)=1/(1+T_f_s)
-*		当M=1时，采用具有不完全微分PID方法；
-*		当M=2时，采用普通PID方法；
-*
-*		引入不完全微分，能有效的克服普通PID的不足。尽管不完全微分PID控制算法比普
-*	通PID控制算法要复杂些，但由于其良好的控制特性，近年来越来越得到广泛的应用。
+/****************************************************************************************
 *	
-*	input:just for Step Signal
-*	目前只针对阶跃信号输入情况
-************************************************************************************/
+*	纯滞后系统的大林控制算法
+*
+*		早在1968年，美国IBM公司的大林（Dahlin）就提出了一种不同于常规PID控制规律
+*	的新型算法，即大林算法。该算法的最大特点是将期望的闭环响应设计成一阶惯性加纯
+*	延迟，然后反过来得到满足这种闭环响应的控制器。
+*
+*	注：因算法本身的复杂度问题，该程序未整定完全，具体参数和计算方式请根据实际情况定义！
+****************************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#define  ts 	20
-#define  Tf 	180
-#define  TD 	140
+#define	 Kp		1.0
+#define  Ki		0.50
+#define	 Kd		0.10
 
-#define	 Kc		0.035
-#define  Ki		0.265
-#define	 Kd		(float)(Kc*TD)/ts
+#define  ts 	0.5
 
-//basic data of pid control 
+//构造结构体
 struct pid_data
 {
-	float SetPoint;		//Desired Value
-	float FeedBack;		//feedback value
+	float rin;			
+	float yout;	
 	float err;			
-	float err_last;
-	float integral;
-	float u_k;
+	float err_last;		
+	float integral;		
+	float u;
 };
 
+//定义结构体类型
 typedef struct pid_data		_pid_t;
 
-//pid struct data init
-struct pid_data* pid_init(float SetPoint, float FeedBack, float err, float err_last, float u_k)
+//机构体初始化
+struct pid_data* pid_init(float rin, float yout,
+float err, float err_last, float u)
 {
 	struct pid_data* tset = malloc(sizeof(struct pid_data));
 
-	tset->SetPoint 	= SetPoint;
-	tset->FeedBack 	= FeedBack; 				
+	tset->rin 		= rin;
+	tset->yout		= yout;
 	tset->err 		= err;		
 	tset->err_last 	= err_last;
-	tset->u_k		= u_k;
+	tset->u			= u;
 
 	return tset;
 }
@@ -59,28 +51,26 @@ struct pid_data* pid_init(float SetPoint, float FeedBack, float err, float err_l
 //The Increment PID Control Algorithm
 float pid_calc(_pid_t* pid)
 {
-	float alfa,ud_k;
-	float ud_1=0;
-	int M = 1;
-	
-	pid->err = pid->SetPoint - pid->FeedBack;
-	pid->integral += pid->err;
-	if(M == 1)
+	//wait
+	float err_1,err_2,err_3;
+	pid->err = pid->rin - pid->yout;
+
+	int M=1;
+	if (M==1)
 	{
-		alfa = Tf/(ts+Tf);
-		ud_k = Kd*(1 - alfa)*(pid->err - pid->err_last) + alfa*ud_1;
-		ud_1 = ud_k;
-		pid->u_k = Kc*pid->err + ud_k + Ki*pid->integral;
+		pid->u = (num_1*err + num_2*err_1 + num_3*err_2 + num_4*err_3
+				 -den_3*u_1 - den_4*u_2 - den_5*u_3 - den_6*u_4 - den_7*u_5)/den_2;
 	}
-	else if(M == 2)
+	else if (M == 2)
 	{
-		pid->u_k = Kc*pid->err + Kd*(pid->err - pid->err_last) + Ki*pid->integral;
+		pid->integral += pid->err;
+		pid->u = Kp*pid->err + Kd*(pid->err - pid->err_last)/ts + Ki*pid->integral;
 	}
 
-	pid->FeedBack = pid->u_k*1.0;
 	pid->err_last = pid->err;
+	pid->yout = pid->u;
 
-	return pid->FeedBack;
+	return pid->yout;
 }
 
 int main()
@@ -91,12 +81,12 @@ int main()
 	int count = 0;
 	float real = 0;
 
-	tset = pid_init(35,0,0,0,0);
+	tset = pid_init(23,0,0,0,0);
 
 	while(count < 100)
 	{
 		real = pid_calc(tset);
-		printf("%d> %f\n", count, real);
+		printf("%d > %f\n", count, real);
 		count++;
 	}
 

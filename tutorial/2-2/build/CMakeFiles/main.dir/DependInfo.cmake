@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/2-1/main.c" "/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/2-1/build/CMakeFiles/main.dir/main.c.o"
+  "/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/2-2/main.c" "/Users/ouhomarebon/esp_project/github/esp32_soc/PID/PID_controller/tutorial/2-2/build/CMakeFiles/main.dir/main.c.o"
   )
 set(CMAKE_C_COMPILER_ID "AppleClang")
 

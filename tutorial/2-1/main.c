@@ -89,12 +89,12 @@ int main()
 	int count = 0;
 	float real = 0;
 
-	tset = pid_init(23,0,0,0,0,0,0,0);
+	tset = pid_init(23, 0, 0, 0, 0, 0, 0, 0);
 
-	while(count < 100)
+	while(count < 3000)
 	{
 		real = pid_calc(tset);
-		printf("%f\n",real);
+		printf("%d> %f\n", count, real);
 		count++;
 	}
 
